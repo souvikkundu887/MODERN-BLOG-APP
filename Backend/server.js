@@ -20,6 +20,9 @@ app.use("/api/v2", UserRoute2)
 
 app.use("/api/v1", BlogRoute)
 
+app.get('/',(req,res)=>{
+    res.send("app is runing")
+})
 
 
 app.listen(3000, () => {
