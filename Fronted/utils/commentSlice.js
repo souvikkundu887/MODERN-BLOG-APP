@@ -3,14 +3,18 @@ import { createSlice } from "@reduxjs/toolkit";
 const CommentSlice = createSlice({
     name: "Comment",
     initialState: {
-        isOpen: false
+        isOpen: false,
+        Comment:[]
     },
     reducers: {
         SetisOpen: (state, action) => {
             const { payload } = action
-            console.log(payload)
             state.isOpen =  payload===false?false:!state.isOpen
-        }
+        },
+
+       addComment:(state,action)=>{
+          
+       }
     }
 })
 export const { SetisOpen } = CommentSlice.actions

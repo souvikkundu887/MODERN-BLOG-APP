@@ -1,4 +1,5 @@
 import { createSlice, current } from "@reduxjs/toolkit";
+import { act } from "react";
 
 const blogSilce = createSlice({
     name: "blogslice",
@@ -14,11 +15,10 @@ const blogSilce = createSlice({
         },
         setComments: (state, action) => {
             state.comments = [...state.comments, action.payload]
-            console.log(state.comments.length)
         },
 
         setReplies: (state, action) => {
-            // console.log(action.payload)
+           
             let newReply = action.payload
 
 
@@ -65,7 +65,7 @@ const blogSilce = createSlice({
                         }
                     }
 
-                   else if (comment.replies && comment.replies.length > 0) {
+                    else if (comment.replies && comment.replies.length > 0) {
                         return { ...comment, replies: toogleLike(comment.replies) }
                     }
 
@@ -92,16 +92,28 @@ const blogSilce = createSlice({
         },
 
         deleteComment: (state, action) => {
-
+       
             function deleteComments(comments) {
                 return comments.filter((comment) => comment._id !== action.payload._id).map((comment) => comment.replies && comment.replies.length > 0 ? { ...comment, replies: deleteComments(comment.replies) } : comment)
             }
 
             state.comments = deleteComments(state.comments)
         },
+
+        setSave: (state, action) => {
+            const id = action.payload
        
+            if (!state.totalSaves.includes(id)) {
+                state.totalSaves = [...state.totalSaves, id]
+            }
+            else {
+                state.totalSaves = state.totalSaves.filter((user) => user != id)
+            }
+        },
+
+
 
     }
 })
-export const { addBlog, removeBlog, setComments, setCommentLike, setReplies, setCountcomment, setUpdatedComment, deleteComment } = blogSilce.actions
+export const { addBlog, removeBlog, setComments, setCommentLike, setReplies, setCountcomment, setUpdatedComment, deleteComment, setSave } = blogSilce.actions
 export default blogSilce.reducer

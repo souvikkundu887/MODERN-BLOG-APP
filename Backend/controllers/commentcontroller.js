@@ -15,7 +15,6 @@ async function commentBlog(req, res) {
             })
         }
         const creator = req.user.id;
-        // console.log(creator);
         const { id } = req.params
 
         const findblog = await Blogs.findOne({ blogId: id });
@@ -47,7 +46,6 @@ async function commentBlog(req, res) {
         })
     }
     catch (err) {
-        console.log(err)
         res.status(500).json({
             success: false,
             message: "Internal server err",
@@ -63,10 +61,6 @@ async function deleteComment(req, res) {
         const { id } = req.params
 
         const findComment = await Comment.findById(id);
-
-        console.log(creator)
-
-        console.log(findComment)
 
         if (!findComment) {
             return res.status(500).json({
@@ -90,15 +84,15 @@ async function deleteComment(req, res) {
             }
             await Comment.findByIdAndDelete(id)
         }
+
         if (creator == findblog.creator._id) {
-            // await Comment.deleteMany({ _id: { $in: findComment.replies } })
             await deleteCommentReplies(id)
             const deletecomment = await Blogs.findByIdAndUpdate(blogid, { $pull: { comments: id } }, { new: true })
             await Comment.findByIdAndDelete(id)
             return res.status(200).json({
                 success: true,
                 message: "comment deleted succesfully",
-
+                comment:findComment
             })
         }
 
@@ -111,22 +105,18 @@ async function deleteComment(req, res) {
 
         }
 
-        // await User.findByIdAndUpdate(creator, { $push: { blog: newBlog._id } })
-        // await Comment.deleteMany({ _id: { $in: findComment.replies } })
         await deleteCommentReplies(id)
 
         const deletecomment = await Blogs.findByIdAndUpdate(blogid, { $pull: { comments: id } }, { new: true })
 
-        // await Comment.findByIdAndDelete(id)
 
         res.status(200).json({
             success: true,
             message: "comment deleted succesfully",
-            deleteComment: findComment
+            comment: findComment
         })
     }
     catch (err) {
-        console.log(err)
         res.status(500).json({
             success: false,
             message: "Internal server err",
@@ -154,7 +144,6 @@ async function editComment(req, res) {
                 message: "you are not authorized to edit the comment"
             })
         }
-        // console.log(updatedCommentContent)
         const updatedComment = await Comment.findByIdAndUpdate(id, {
             comment: updatedCommentContent,
             blog: findComment.blog,
@@ -224,7 +213,6 @@ async function NestedComment(req, res) {
     try {
         const userId = req.user.id
         const { id, parentCommentId } = req.params
-        // console.log(req.body)
         const { reply } = req.body
 
         const comment = await Comment.findById(parentCommentId)
@@ -267,7 +255,6 @@ async function NestedComment(req, res) {
         })
     }
     catch (error) {
-        console.log(error)
         res.status(500).json({
             success: false,
             message: "internal server error"

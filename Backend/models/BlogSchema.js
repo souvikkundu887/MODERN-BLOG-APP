@@ -44,9 +44,25 @@ const BlogSchema = new mongoose.Schema({
                      type: mongoose.Schema.Types.ObjectId,
                      ref: "comment"
               }
+       ],
+       totalSaves:[
+              {
+                     type:mongoose.Schema.Types.ObjectId,
+                     ref:'User'
+
+              }
+       ],
+       draft:{
+        type:Boolean,
+        default:false
+       },
+       tags:[
+              {
+                     type:String
+              }
        ]
 },
-       { timestamps: true }
+       { timestamps: true } 
 )
 const Blogs = mongoose.model('blog', BlogSchema);
 module.exports = Blogs

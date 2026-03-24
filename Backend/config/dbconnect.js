@@ -1,14 +1,12 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
+const { MONGO_URL } = require('./dotenv.config');
 require('dotenv').config()
-// console.log(process.env.DB_URL)
 async function dbconnect(URL) {
     try {
-        console.log(URL)
-        await mongoose.connect("mongodb://localhost:27017/blogusers")
-        console.log("db connected")
+        await mongoose.connect(MONGO_URL) 
     }
     catch (err) {
-         console.log("error")
+     console.log("error")
     }
 }
 module.exports=dbconnect;

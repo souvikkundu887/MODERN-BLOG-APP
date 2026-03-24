@@ -11,13 +11,10 @@ const path = require("path")
 
 async function CreateBlog(req, res) {
     try {
-        const { title, Desc } = req.body
+        const { title, Desc, draft } = req.body
         const { image, images } = req.files
-        console.log(image)
-        // console.log(images)
         const content = JSON.parse(req.body.content)
-
-        // console.log(content.blocks[0].data.file);
+        const tags = JSON.parse(req.body.tags)
         let imgIndex = 0;
 
         for (let i = 0; i < content.blocks.length; i++) {
@@ -31,7 +28,6 @@ async function CreateBlog(req, res) {
                 const { url, public_id } = await uploadImage(dataUrl)
 
                 imgIndex++
-                // console.log(url)
                 block.data.file.url = url
                 block.data.file.public_id = public_id
             }
@@ -41,10 +37,6 @@ async function CreateBlog(req, res) {
         const { url, public_id } = await uploadImage(`data:image/jpeg;base64,${image[0].buffer.toString("base64")}`)
         //create a custom blog id
         const blogId = title.toLowerCase().split(" ").join("-") + "-" + uniqueid();
-        console.log(blogId)
-        //delete the file from local stroage
-        // fs.unlinkSync(req.file.path)
-
         const newBlog = await Blogs.create({
             title,
             image: url,
@@ -52,11 +44,18 @@ async function CreateBlog(req, res) {
             Desc,
             creator: req.user.id,
             blogId,
-            content
+            content,
+            tags,
+            draft
         })
 
         await User.findByIdAndUpdate(req.user.id, { $push: { blog: newBlog._id } })
-
+        if (draft) {
+            return res.status(200).json({
+                success: true,
+                message: "Draft saved succesfully"
+            })
+        }
         res.status(201).json({
             success: true,
             message: "Blog has been created for you",
@@ -64,7 +63,6 @@ async function CreateBlog(req, res) {
         })
     }
     catch (error) {
-        console.log(error)
         res.status(500).json({
             success: false,
             message: "Internal server err",
@@ -75,22 +73,31 @@ async function CreateBlog(req, res) {
 
 async function GetBlog(req, res) {
     try {
-        const blog = await Blogs.find({})
+
+        const page = req.query.page - '0';
+        const limit = req.query.limit - '0';
+        const skip = (page - 1) * limit
+        const blog = await Blogs.find({ draft: false })
             .populate({ path: "creator" })
             .populate({
                 path: "comments",
                 populate: [
-                    { path: "user", select: "name" },
+                    { path: "user", select: "name followers" },
                     { path: "replies" }
                 ]
-            });
+            }).sort({ createdAt: -1 }).skip(skip).limit(limit);
+
+        const totalBlogs = await Blogs.countDocuments({ draft: false })
         res.status(200).json({
             success: true,
             message: "got the blog",
-            blog
+            blog,
+            hasMore: skip + limit >= totalBlogs ? false : true
         })
+        
     }
     catch (err) {
+        console.log(err)
         res.status(500).json({
             success: false,
             message: "Internal server err",
@@ -100,7 +107,6 @@ async function GetBlog(req, res) {
 }
 async function GetBlogById(req, res) {
     try {
-        // console.log(req.params)
         const { id } = req.params
         const blog = await Blogs.findOne({ blogId: id }).populate({ path: "creator" }).populate({
             path: "comments",
@@ -118,18 +124,18 @@ async function GetBlogById(req, res) {
                     }
                 }).lean()
 
-                 comment.replies=populatedComment.replies
+                comment.replies = populatedComment.replies
 
-                 if(populatedComment.replies.length>0){
-                   
-                   
+                if (populatedComment.replies.length > 0) {
+
+
                     await populateReplies(populatedComment.replies)
-                 }
+                }
             }
 
             return comments
 
-           
+
         }
 
         blog.comments = await populateReplies(blog.comments)
@@ -142,7 +148,6 @@ async function GetBlogById(req, res) {
     }
 
     catch (err) {
-        console.log(err)
         res.status(500).json({
             success: false,
             message: "Internal server err",
@@ -152,23 +157,18 @@ async function GetBlogById(req, res) {
 }
 async function UpdateBlog(req, res) {
     try {
-        const { title, Desc } = req.body
-        // console.log(req.body)
+        const { title, Desc, draft } = req.body
         const { id } = req.params
-        // console.log("from handler", req.user.id)
 
         const blogId = id
         const imageUrl = req?.body?.image
 
-        // console.log(title, Desc, imageUrl)
         const creator = req.user.id
         let content = JSON.parse(req.body.content)
-
+        const tags = JSON.parse(req.body.tags)
         const { images, image } = req.files
 
         const existingImages = JSON.parse(req.body.existingImages)
-        // console.log(existingImages)
-        // console.log(images)
         const findblog = await Blogs.findOne({ blogId });
 
         if (!(req.user.id == findblog.creator)) {
@@ -177,17 +177,10 @@ async function UpdateBlog(req, res) {
                 message: "you are not authorized for this action"
             })
         }
-        // //cloudinary code
-        // console.log(findblog)
         const imageid = findblog.imageid
         let imageToDelete = findblog.content.blocks.filter((block) => (block.type == 'image')).filter(
             (block) => !existingImages.find(({ url }) => url == block.data.file.url)
         ).map((block) => block.data.file.public_id)
-
-
-
-
-        // console.log(imageToDelete)
 
         if (imageToDelete.length > 0) {
 
@@ -212,15 +205,12 @@ async function UpdateBlog(req, res) {
                     const { url, public_id } = await uploadImage(dataUrl)
 
                     imgIndex++
-                    // console.log(url)
                     block.data.file.url = url
                     block.data.file.public_id = public_id
                 }
             }
         }
-        console.log(image)
-
-        if (image) {
+       if (image) {
             await deleteImage(imageid)
             const { url, public_id } = await uploadImage(`data:image/jpeg;base64,${image[0].buffer.toString("base64")}`)
             imageUrl = url;
@@ -234,12 +224,17 @@ async function UpdateBlog(req, res) {
             Desc,
             creator: req.user.id,
             blogId,
-            content
+            content,
+            draft,
+            tags
         },
             { new: true })
-
-        //  console.log(blog)
-
+         if (draft) {
+          return res.status(200).json({
+                success: true,
+                message: "Draft saved succesfully"
+            })
+        }
         res.status(200).json({
             success: true,
             message: "updated succesfully",
@@ -247,7 +242,6 @@ async function UpdateBlog(req, res) {
         })
     }
     catch (err) {
-        console.log(err)
         res.status(500).json({
             success: false,
             message: "Internal server err",
@@ -255,10 +249,7 @@ async function UpdateBlog(req, res) {
         })
     }
 }
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXlsb2FkIjp7ImVtYWlsIjoic29oYW4gZGFzQGdtYWlsLmNvbSIsImlkIjoiNjhjYmQyNzkwODM0Njk5MDVmNzY4ZGFjIn0sImlhdCI6MTc1ODE4ODE1M30.z_a2ZrmRjeW92PN7IMBgN9Mw_BSFtNCCUiZknhdHds0
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXlsb2FkIjp7ImVtYWlsIjoic29uYWlAZ21haWwuY29tIiwiaWQiOiI2OGNjZjc2MjczODBjNjU4Mzk0ZjAxZTQifSwiaWF0IjoxNzU4MjYzMTM4fQ.2zQgC5ssdjZhgZYR5iXqsZU4v9wtKyf3ikQUkRoW5Cs
 async function DeleteBlog(req, res) {
-    // const { Title, Desc, Draft, Tags, Author } = req.body
     try {
         const creator = req.user.id
         const { id } = req.params
@@ -271,7 +262,6 @@ async function DeleteBlog(req, res) {
                 message: "you are not authorized for this action"
             })
         }
-        //before deleting the blog delete the image from cloudinary
         const imageid = findblog.imageid;
         await deleteImage(imageid);
         const blog = await Blogs.findByIdAndDelete(id)
@@ -295,12 +285,7 @@ async function DeleteBlog(req, res) {
 
 
 async function likeBlog(req, res) {
-    // const { Title, Desc, Draft, Tags, Author } = req.body
     try {
-
-
-
-        // console.log(creator);
         const { id } = req.params
 
         let findblog = await Blogs.findOne({ blogId: id });
@@ -312,6 +297,7 @@ async function likeBlog(req, res) {
         }
         if (!findblog.likes.includes(req.user.id)) {
             findblog = await Blogs.findOneAndUpdate({ blogId: id }, { $push: { likes: req.user.id } }, { new: true })
+            await User.findByIdAndUpdate(req.user.id, { $push: { likeBlogs: findblog._id } })
             return res.status(200).json({
                 success: true,
                 message: "liked succesfully",
@@ -320,6 +306,8 @@ async function likeBlog(req, res) {
         }
         else {
             findblog = await Blogs.findOneAndUpdate({ blogId: id }, { $pull: { likes: req.user.id } }, { new: true })
+            await User.findByIdAndUpdate(req.user.id, { $pull: { likeBlogs: findblog._id } })
+
             return res.status(200).json({
                 success: true,
                 message: "disliked succesfully",
@@ -328,7 +316,76 @@ async function likeBlog(req, res) {
         }
     }
     catch (err) {
-        console.log(err)
+        res.status(500).json({
+            success: false,
+            message: "Internal server err",
+            err
+        })
+    }
+}
+
+async function saveBlog(req, res) {
+    try {
+        const { id } = req.params
+        const user = req.user.id;
+        const blog = await Blogs.findById(id);
+        if (!blog) {
+            return res.status(400).json({
+                status: 'error',
+                message: "blog not found"
+            })
+        }
+
+        if (!blog.totalSaves.includes(user)) {
+            await User.findByIdAndUpdate(user, { $set: { saveBlogs: id } })
+            await Blogs.findByIdAndUpdate(id, { $set: { totalSaves: user } })
+            return res.status(200).json({
+                status: "success",
+                message: "blog saved successfully"
+            })
+        }
+        else {
+            await User.findByIdAndUpdate(user, { $pull: { saveBlogs: id } })
+            await Blogs.findByIdAndUpdate(id, { $pull: { totalSaves: user } })
+            return res.status(200).json({
+                status: "success",
+                message: "blog unsaved successfully"
+            })
+        }
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server err",
+            err
+        })
+    }
+}
+
+async function searchBlog(req, res) {
+    try {
+        const { search } = req.query
+        const page = req.query.page - '0';
+        const limit = req.query.limit - '0';
+        const skip = (page - 1) * limit
+        const query = {
+            $or: [
+                { title: { $regex: search, $options: "i" } },
+                { Desc: { $regex: search, $options: "i" } },
+
+            ]
+        }
+        const blogs = await Blogs.find(query, { draft: false }).sort({ createdAt: -1 }).skip(skip).limit(limit)
+
+        const totalBlogs = await Blogs.countDocuments(query, { draft: false })
+
+        return res.status(200).json({
+            status: "success",
+            message: "blogs fetched success fully",
+            blogs,
+            hasMore: skip + limit >= totalBlogs ? false : true
+        })
+    } catch (err) {
         res.status(500).json({
             success: false,
             message: "Internal server err",
@@ -338,4 +395,4 @@ async function likeBlog(req, res) {
 }
 
 
-module.exports = { CreateBlog, GetBlog, UpdateBlog, DeleteBlog, GetBlogById, likeBlog };
+module.exports = { CreateBlog, GetBlog, UpdateBlog, DeleteBlog, GetBlogById, likeBlog, saveBlog, searchBlog };

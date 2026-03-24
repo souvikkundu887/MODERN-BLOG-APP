@@ -3,21 +3,21 @@ import { data, Navigate, useParams } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { removeBlog } from "../../utils/blogSlice";
+import { addBlog, removeBlog } from "../../utils/blogSlice";
 import EditorJS from '@editorjs/editorjs';
 import Header from '@editorjs/header'
 import EditorjsList from '@editorjs/list';
 import Marker from '@editorjs/marker';
 import Embed from '@editorjs/embed';
 import ImageTool from '@editorjs/image';
-
+import toast from "react-hot-toast"
 function Addblog() {
     const { id } = useParams()
+  
     const { token } = useSelector((state) => state.user)
     const formData = new FormData()
-    const { title, Desc, image, content } = useSelector((state) => state.blog)
+    const { title, Desc, image, content,tags,draft } = useSelector((state) => state.blog)
     const editorjsRef = useRef(null)
-    console.log(editorjsRef)
     const dispatch = useDispatch()
 
     const [resonse, setresponse] = useState(null)
@@ -25,16 +25,21 @@ function Addblog() {
         title: "",
         Desc: "",
         image: null,
-        content: ""
+        content: "",
+        tags: ["React", "Web dev", "Javascript", "Dsa", "SpringBoot"],
+        draft: false
     })
-    //  setBlogData((blogData)=>({...blogData,content:content}))
+
     function fetchBlog() {
         setBlogData({
             title,
             Desc,
             image,
-            content
+            content,
+            tags,
+            draft
         })
+        dispatch(addBlog(blogData))
     }
 
     useEffect(() => {
@@ -49,6 +54,8 @@ function Addblog() {
             formData.append('Desc', blogData.Desc)
             formData.append('image', blogData.image)
             formData.append('content', JSON.stringify(blogData.content))
+            formData.append('tags', JSON.stringify(blogData.tags))
+            formData.append('draft', blogData.draft)
 
             blogData.content.blocks.forEach((block) => {
                 if (block.type === 'image')
@@ -63,22 +70,24 @@ function Addblog() {
                     }
                 }
             )
-            console.log(res)
+          toast.success("blog has been created succesfully")
 
         } catch (err) {
-            console.log(err)
+            toast.error("something went wrong")
         }
-        // console.log(blogData)
+        
     }
+
     async function handleUpdateblog() {
         try {
-            console.log(blogData)
             let existingImages = []
             const formData = new FormData();
             formData.append('title', blogData.title)
             formData.append('Desc', blogData.Desc)
             formData.append('image', blogData.image)
             formData.append('content', JSON.stringify(blogData.content))
+            formData.append('tags', JSON.stringify(blogData.tags))
+            formData.append('draft', blogData.draft)
             blogData.content.blocks.forEach((block) => {
                 if (block.type === 'image') {
                     if (block.data.file.image)
@@ -93,11 +102,7 @@ function Addblog() {
                     }
                 }
             })
-            // for (let data of formData.entries()) {
-            //     console.log(data)
-            // }
-            // console.log(existingImages)
-            formData.append('existingImages',JSON.stringify( existingImages));
+            formData.append('existingImages', JSON.stringify(existingImages));
             const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/blogs/${id}`, formData,
                 {
                     headers: {
@@ -107,12 +112,10 @@ function Addblog() {
                 }
             )
 
-
         } catch (err) {
-            console.log(err)
-             if(!err.response.data.success){
-                 alert(err.response.data.message)
-           }
+            if (!err.response.data.success) {
+                alert(err.response.data.message)
+            }
         }
 
     }
@@ -183,13 +186,26 @@ function Addblog() {
                 },
             },
             onChange: async () => {
-                console.log("ui")
-                console.log(editorjsRef.current)
                 let data = await editorjsRef.current.save();
                 setBlogData((blogData) => ({ ...blogData, content: data }))
-                console.log(data)
+               
             }
         })
+    }
+
+    function deleteTag(index) {
+        const updatedTags = blogData.tags.filter((tags, i) => i != index)
+        setBlogData({ ...blogData, tags: updatedTags })
+    }
+
+    function handlekeydown(e) {
+        if (e.code == "Enter") {
+            const val = e.target.value.trim().toLowerCase();
+            if (!val || blogData.tags.includes(val) || blogData.tags.length == 10) return
+            setBlogData((prev) => ({ ...prev, tags: [...prev.tags, val] }))
+            e.target.value = ""
+        }
+
     }
     useEffect(() => {
         if (editorjsRef.current == null)
@@ -197,32 +213,153 @@ function Addblog() {
     }, [])
 
 
-    return token == null ? <Navigate to={"/signin"}></Navigate> : <div className="">
-        <div className="flex flex-col gap-2 w-[70%]  mx-auto  my-2">
-            <label htmlFor="" className="font-bold  ">Add Title</label>
-            <input type="text" placeholder="Title" className=" focus:outline-none w-3/4 p-2 rounded-lg shadow-xl" onChange={(e) => (setBlogData((blogData) => ({ ...blogData, title: e.target.value })))} value={blogData.title} />
-            <br />
+    return token == null ? (
+        <Navigate to={"/signin"} />
+    ) : (
+        <div className="min-h-screen max-sm:mt-16 bg-gray-100 py-10 text-wrap">
+            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-8">
 
-            <label htmlFor="" className="font-bold ">Description</label>
-            <textarea type="text" placeholder="Description" className="focus:outline-none p-2 rounded-lg shadow-2xl focus:none focus:border-none h-[100px] " onChange={(e) => (setBlogData((blogData) => ({ ...blogData, Desc: e.target.value })))} value={blogData.Desc} ></textarea>
-            <br />
-            <label htmlFor="" className="font-bold ">Content</label>
-            <div id="editor" className="focus:outline-none p-4 rounded-xl shadow-2xl "></div>
-            <div>
-                <label htmlFor="image" className="bg-black w-[200px] md:w-[500px] ">
-                    {
-                        blogData?.image ? <img src={typeof (blogData.image) == "string" ? blogData.image : URL.createObjectURL(blogData.image)} alt="" className="h-[400px] w-[500px]" /> :
-                            <div className="aspect-video border rounded-xl h-[400px] w-full md:w-[500px]  bg-slate-500 flex justify-center items-center text-xl">
-                                select image
+                <h1 className="text-3xl font-bold mb-8 text-gray-800">
+                    {id ? "Update Blog" : "Create New Blog"}
+                </h1>
+
+              
+                <div className="mb-6">
+                    <label className="block mb-2 text-sm font-semibold text-gray-600">
+                        Blog Title
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Enter blog title"
+                        className="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-black focus:outline-none"
+                        onChange={(e) =>
+                            setBlogData((blogData) => ({
+                                ...blogData,
+                                title: e.target.value,
+                            }))
+                        }
+                        value={blogData.title}
+                    />
+                </div>
+
+            
+                <div className="mb-6">
+                    <label className="block mb-2 text-sm font-semibold text-gray-600">
+                        Short Description
+                    </label>
+                    <textarea
+                        placeholder="Write a short description..."
+                        className="w-full p-3 rounded-xl border border-gray-300 h-24 resize-none focus:ring-2 focus:ring-black focus:outline-none"
+                        onChange={(e) =>
+                            setBlogData((blogData) => ({
+                                ...blogData,
+                                Desc: e.target.value,
+                            }))
+                        }
+                        value={blogData.Desc}
+                    />
+                </div>
+
+             
+                <div className="mb-6">
+                    <label className="block mb-2 text-sm font-semibold text-gray-600">
+                        Tags
+                    </label>
+                    <input
+                        placeholder="e.g. React, JavaScript, WebDev"
+                        className="w-full p-3 rounded-xl border border-gray-300 h-16 resize-none focus:ring-2 focus:ring-black focus:outline-none"
+                        onKeyDown={(e) => { handlekeydown(e) }}
+                    />
+                    <div className="flex justify-between max-sm:flex-col">
+                        <p className="text-red-400">*click on spacebar or Enter to add a tag</p>
+                        <p className="text-red-400">{10 - blogData.tags?.length} tags remaining</p>
+                    </div>
+                    <div className="flex flex-wrap gap-4 mt-4">{
+                        blogData.tags?.map((tag, index) => (
+                            <div className="flex  gap-4  justify-center p-2 items-center  rounded-2xl bg-gray-400 hover:bg-blue-400 hover:cursor-pointer">
+                                <p>{tag}</p>
+                                <i className="fi fi-rr-cross-circle mt-1.5" onClick={() => { deleteTag(index) }}></i>
                             </div>
+                        ))
                     }
-                </label>
-                <input id="image" type="File" accept=".jpeg,.png,.jpg" placeholder="image" className="border hidden shadow-xl" onChange={(e) => (setBlogData((blogData) => ({ ...blogData, image: e.target.files[0] })))} />
-            </div>
+                    </div>
+                </div>
 
-            <button onClick={id ? handleUpdateblog : handlepostblog} className="bg-gray-400 w-[200px] rounded-xl font-semibold  shadow-xl p-2">{id ? "Update blog" : "Post Blog"}</button>
+            
+                <div className="mb-8">
+                    <label className="block mb-3 text-sm font-semibold text-gray-600">
+                        Blog Content
+                    </label>
+                    <div
+                        id="editor"
+                        className="bg-gray-50 border border-gray-300 rounded-xl p-5 min-h-[300px]"
+                    ></div>
+                </div>
+
+           
+                <div className="mb-8">
+                    <label className="block mb-3 text-sm font-semibold text-gray-600">
+                        Cover Image
+                    </label>
+
+                    <label
+                        htmlFor="image"
+                        className="cursor-pointer block rounded-xl overflow-hidden border-2 border-dashed border-gray-300 hover:border-black transition"
+                    >
+                        {blogData?.image ? (
+                            <img
+                                src={
+                                    typeof blogData.image === "string"
+                                        ? blogData.image
+                                        : URL.createObjectURL(blogData.image)
+                                }
+                                alt="cover"
+                                className="w-full h-[300px] object-cover"
+                            />
+                        ) : (
+                            <div className="h-[300px] flex flex-col justify-center items-center text-gray-400">
+                                <span className="text-lg font-medium">Click to upload image</span>
+                                <span className="text-sm">JPEG, PNG, JPG</span>
+                            </div>
+                        )}
+                    </label>
+
+                    <input
+                        id="image"
+                        type="file"
+                        accept=".jpeg,.png,.jpg"
+                        className="hidden"
+                        onChange={(e) =>
+                            setBlogData((blogData) => ({
+                                ...blogData,
+                                image: e.target.files[0],
+                            }))
+                        }
+                    />
+                </div>
+
+            
+                <div className="flex flex-wrap gap-4">
+                    <button
+                        onClick={id ? handleUpdateblog : handlepostblog}
+                        className="px-6 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-800 transition shadow-lg"
+                    >
+                        {id ? "Update and post Blog" : "Publish Blog"}
+                    </button>
+
+                    <button
+                        className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition shadow"
+                        onClick={() => {
+                            setBlogData({ ...blogData, draft: true })
+                           id?handleUpdateblog():handlepostblog()
+                        }} >
+                        Save as Draft
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
+    );
+
 
 }
 export default Addblog

@@ -10,7 +10,7 @@ const likeSlice= createSlice({
         addLike:(state,action)=>{
             
             state.likes.push(action.payload)
-            console.log(state.likes)
+         
         },
         removeLike:(state,action)=>{
             return state.filter((item)=>item!==action.payload)

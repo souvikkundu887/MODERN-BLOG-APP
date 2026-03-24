@@ -1,34 +1,32 @@
 const jwt = require('jsonwebtoken')
+const { JWT_SECRET } = require('../config/dotenv.config')
 require('dotenv').config()
 function generateJWT(payload) {
   try {
-    let token = jwt.sign({ payload }, process.env.JWT_SECRET_KEY)
+    let token = jwt.sign({ payload }, JWT_SECRET)
     return token;
   } catch (error) {
-    console.log(error)
+ 
   }
 }
 
 
 function verifyJWT(token) {
   try {
-    console.log("verifying token:", token)
-    let isValid = jwt.verify(token, "jwtsecretkey")
+    let isValid = jwt.verify(token, JWT_SECRET)
     return isValid;
   }
   catch (error) {
-    console.log(error)
     return false;
   }
 }
 
 function decodeJWT(token) {
   try {
-    let isValid = jwt.verify(token, "jwtsecretkey")
+    let isValid = jwt.verify(token, JWT_SECRET)
     let decoded = jwt.decode(token);
     return decoded;
   } catch (error) {
-    console.log("invalid token")
   }
 }
 
