@@ -30,25 +30,25 @@ function Addblog() {
         draft: true
     })
 
+
     function fetchBlog() {
-        // setBlogData((blogData) => ({ ...blogData, title:title, Desc, image, content, tags, draft }))
-     setBlogData({
-        title,
-        Desc,
-        image,
-        content,
-        tags,
-        draft
-    });
-        // dispatch(addBlog(blogData))
+        const updatedData = { title, Desc, image, content, tags, draft };
+
+        setBlogData(updatedData);
+        dispatch(addBlog(updatedData));
     }
+    // dispatch(addBlog(blogData))
+
+
 
     useEffect(() => {
         if (id) {
-            fetchBlog();
+            fetchBlog()
+        }else{
+            dispatch(addBlog(blogData))
         }
-    }, [])
-    console.log(draft)
+    }, [id])
+    // console.log(draft)
     async function handlepostblog() {
         try {
             formData.append('title', blogData.title)
@@ -348,7 +348,7 @@ function Addblog() {
                         {id ? "Update  Blog" : "Publish Blog"}
                     </button>
 
-                    {blogData?.draft && <div className="mb-8 p-2">
+                    {draft && <div className="mb-8 p-2">
                         <h2 className="font-bold text-xl">save as a Draft?</h2>
                         <select name="" id="" className="w-1/3 border mt-2 rounded-2xl p-2" onClick={(e) => {
                             e.preventDefault()
