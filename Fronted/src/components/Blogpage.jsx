@@ -54,9 +54,9 @@ function Blogpage() {
 
     useEffect(() => {
         fetchBlog()
-        return () => dispatch(removeBlog())
-    }, [id, following])
-
+         return ()=>dispatch(removeBlog())
+    }, [id,following])
+   
     if (!response) return <h1 className="text-center mt-10">Loading...</h1>
    
     

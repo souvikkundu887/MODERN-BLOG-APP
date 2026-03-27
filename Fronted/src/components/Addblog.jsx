@@ -13,41 +13,42 @@ import ImageTool from '@editorjs/image';
 import toast from "react-hot-toast"
 function Addblog() {
     const { id } = useParams()
-  
+    // console.log(id)
     const { token } = useSelector((state) => state.user)
     const formData = new FormData()
-    const { title, Desc, image, content,tags,draft } = useSelector((state) => state.blog)
+    const { title, Desc, image, content, tags, draft } = useSelector((state) => state.blog)
     const editorjsRef = useRef(null)
     const dispatch = useDispatch()
+    // console.log( title, Desc, image, content, tags, draft)
 
-    const [resonse, setresponse] = useState(null)
     const [blogData, setBlogData] = useState({
         title: "",
         Desc: "",
         image: null,
         content: "",
         tags: ["React", "Web dev", "Javascript", "Dsa", "SpringBoot"],
-        draft: false
+        draft: true
     })
 
     function fetchBlog() {
-        setBlogData({
-            title,
-            Desc,
-            image,
-            content,
-            tags,
-            draft
-        })
-        dispatch(addBlog(blogData))
+        // setBlogData((blogData) => ({ ...blogData, title:title, Desc, image, content, tags, draft }))
+     setBlogData({
+        title,
+        Desc,
+        image,
+        content,
+        tags,
+        draft
+    });
+        // dispatch(addBlog(blogData))
     }
 
     useEffect(() => {
         if (id) {
             fetchBlog();
         }
-    }, [id])
-
+    }, [])
+    console.log(draft)
     async function handlepostblog() {
         try {
             formData.append('title', blogData.title)
@@ -70,12 +71,12 @@ function Addblog() {
                     }
                 }
             )
-          toast.success("blog has been created succesfully")
+            toast.success("blog has been created succesfully")
 
         } catch (err) {
             toast.error("something went wrong")
         }
-        
+
     }
 
     async function handleUpdateblog() {
@@ -188,7 +189,7 @@ function Addblog() {
             onChange: async () => {
                 let data = await editorjsRef.current.save();
                 setBlogData((blogData) => ({ ...blogData, content: data }))
-               
+
             }
         })
     }
@@ -223,7 +224,7 @@ function Addblog() {
                     {id ? "Update Blog" : "Create New Blog"}
                 </h1>
 
-              
+
                 <div className="mb-6">
                     <label className="block mb-2 text-sm font-semibold text-gray-600">
                         Blog Title
@@ -242,7 +243,7 @@ function Addblog() {
                     />
                 </div>
 
-            
+
                 <div className="mb-6">
                     <label className="block mb-2 text-sm font-semibold text-gray-600">
                         Short Description
@@ -260,7 +261,7 @@ function Addblog() {
                     />
                 </div>
 
-             
+
                 <div className="mb-6">
                     <label className="block mb-2 text-sm font-semibold text-gray-600">
                         Tags
@@ -285,7 +286,7 @@ function Addblog() {
                     </div>
                 </div>
 
-            
+
                 <div className="mb-8">
                     <label className="block mb-3 text-sm font-semibold text-gray-600">
                         Blog Content
@@ -296,7 +297,7 @@ function Addblog() {
                     ></div>
                 </div>
 
-           
+
                 <div className="mb-8">
                     <label className="block mb-3 text-sm font-semibold text-gray-600">
                         Cover Image
@@ -338,23 +339,25 @@ function Addblog() {
                     />
                 </div>
 
-            
-                <div className="flex flex-wrap gap-4">
+
+                <div className="flex flex-wrap flex-col gap-4">
                     <button
                         onClick={id ? handleUpdateblog : handlepostblog}
                         className="px-6 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-800 transition shadow-lg"
                     >
-                        {id ? "Update and post Blog" : "Publish Blog"}
+                        {id ? "Update  Blog" : "Publish Blog"}
                     </button>
 
-                    <button
-                        className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition shadow"
-                        onClick={() => {
-                            setBlogData({ ...blogData, draft: true })
-                           id?handleUpdateblog():handlepostblog()
-                        }} >
-                        Save as Draft
-                    </button>
+                    {blogData?.draft && <div className="mb-8 p-2">
+                        <h2 className="font-bold text-xl">save as a Draft?</h2>
+                        <select name="" id="" className="w-1/3 border mt-2 rounded-2xl p-2" onClick={(e) => {
+                            e.preventDefault()
+                            setBlogData((prev) => ({ ...prev, draft: e.target.value == "true" ? true : false }))
+                        }}>
+                            <option value="true" >True</option>
+                            <option value="false">False</option>
+                        </select>
+                    </div>}
                 </div>
             </div>
         </div>

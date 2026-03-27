@@ -11,7 +11,6 @@ function Homepage() {
     const { token, id } = useSelector((state) => state.user)
     const [page, setpage] = useState(1)
     const [hasMore, sethasMore] = useState(null)
-
     async function fetchblogs() {
         try {
             let res = await axios.get(
@@ -29,6 +28,7 @@ function Homepage() {
 
             sethasMore(res.data.hasMore)
         } catch (err) {
+            console.log(err)
           toast.error("something went wrong")
         }
     }
