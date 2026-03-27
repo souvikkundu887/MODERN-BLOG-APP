@@ -6,7 +6,6 @@ const blogSilce = createSlice({
     initialState: JSON.parse(localStorage.getItem('blog')) || {},
     reducers: {
         addBlog: (state, action) => {
-            console.log(action.payload)
             localStorage.setItem('blog', JSON.stringify(action.payload))
             return action.payload
         },

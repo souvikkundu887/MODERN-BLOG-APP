@@ -37,7 +37,7 @@ function Addblog() {
         setBlogData(updatedData);
         dispatch(addBlog(updatedData));
     }
-    // dispatch(addBlog(blogData))
+   
 
 
 
@@ -48,7 +48,7 @@ function Addblog() {
             dispatch(addBlog(blogData))
         }
     }, [id])
-    // console.log(draft)
+   
     async function handlepostblog() {
         try {
             formData.append('title', blogData.title)
