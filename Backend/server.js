@@ -8,19 +8,22 @@ const UserRoute = require("./Route/UserRoute")
 const UserRoute2 = require("./Route/UserRoute2")
 const BlogRoute = require("./Route/BlogRoute")
 const cloudinaryConfig = require("./config/cloudinary")
-const {  DB_URL, SERVER_PORT } = require("./config/dotenv.config")
+const { DB_URL, SERVER_PORT, FRONTEND_URL } = require("./config/dotenv.config")
 const dotenv = require('dotenv')
 dotenv.config();
 const PORT = SERVER_PORT
 app.use(express.json());
-app.use(cors())
+app.use(cors({
+    origin: FRONTEND_URL,
+    credentials: true
+}))
 app.use("/api/v1", UserRoute)
 
 app.use("/api/v2", UserRoute2)
 
 app.use("/api/v1", BlogRoute)
 
-app.get('/',(req,res)=>{
+app.get('/', (req, res) => {
     res.send("app is runing")
 })
 
