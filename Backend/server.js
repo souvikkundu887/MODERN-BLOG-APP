@@ -13,10 +13,7 @@ const dotenv = require('dotenv')
 dotenv.config();
 const PORT = SERVER_PORT
 app.use(express.json());
-app.use(cors({
-    origin: FRONTEND_URL,
-    credentials: true
-}))
+app.use(cors())
 app.use("/api/v1", UserRoute)
 
 app.use("/api/v2", UserRoute2)
